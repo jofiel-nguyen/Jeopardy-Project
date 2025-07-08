@@ -174,7 +174,7 @@ async function setupTheGame ()
  */
 async function getCategoryIds ()
 {
-  const ids = suitableCategories.slice(0, NUMBER_OF_CATEGORIES).map(cat => cat.id); // todo set after fetching
+  
   const suitableCategories = allCategories.filter(cat => cat.clues_count >= NUMBER_OF_CLUES_PER_CATEGORY);
   for (let i = suitableCategories.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -184,6 +184,7 @@ async function getCategoryIds ()
   // todo fetch NUMBER_OF_CATEGORIES amount of categories
   const response = await axios.get(`${API_URL}categories?count=100`);
   const allCategories = response.data;
+  const ids = suitableCategories.slice(0, NUMBER_OF_CATEGORIES).map(cat => cat.id); // todo set after fetching
   return ids;
 }
 
@@ -255,21 +256,21 @@ const filteredClues = apiCategory.clues.filter(clue =>
 function fillTable (categories)
 {
   // todo
-              const $categoriesRow = $("#categories");
+            const $categoriesRow = $("#categories");
             const $cluesBody = $("#clues");
 
             $categoriesRow.empty();
             $cluesBody.empty();
 
             
-            for (let category of categoriesToDisplay) {
+            for (let category of categories) {
                 $categoriesRow.append(`<th class="rounded-t-xl">${category.title.toUpperCase()}</th>`);
             }
 
             for (let i = 0; i < NUMBER_OF_CLUES_PER_CATEGORY; i++) {
                 const $row = $("<tr>");
-                for (let j = 0; j < categoriesToDisplay.length; j++) {
-                    const category = categoriesToDisplay[j];
+                for (let j = 0; j < categories.length; j++) {
+                    const category = categories[j];
                     // Check if the clue exists for this row/category
                     const clue = category.clues[i];
                     if (clue) {
@@ -358,39 +359,22 @@ function handleClickOfActiveClue (event)
 {
   // todo display answer if displaying a question
 if (activeClueMode === 1) {
-                activeClueMode = 2;
-                $("#active-clue").html(activeClue.answer);
-            }
+    activeClueMode = 2; 
+    $("#active-clue").html(activeClue.answer); 
+  }
+      
   // todo clear if displaying an answer
   else if (activeClueMode === 2) {
-                activeClueMode = 0;
-                $("#active-clue").html("Click a clue to reveal the question!");
-                activeClue = null;
+    activeClueMode = 0; 
+    $("#active-clue").html("");
   // todo after clear end the game when no clues are left
-const allCluesViewed = $(".clue:not(.viewed)").length === 0;
-
-                if (allCluesViewed || categories.length === 0) {
-                    isPlayButtonClickable = true;
-                    $("#play").text("Play Again!");
-                    $("#play").prop("disabled", false);
-                    $("#active-clue").html("Game Over! Click 'Play Again!' to restart.");
-                }
-            }
-  if (activeClueMode === 1)
-  {
-    activeClueMode = 2;
-    $("#active-clue").html(activeClue.answer);
-  }
-  else if (activeClueMode === 2)
-  {
-    activeClueMode = 0;
-    $("#active-clue").html(null);
-
-    if (categories.length === 0)
-    {
-      isPlayButtonClickable = true;
-      $("#play").text("Restart the Game!");
-      $("#active-clue").html("The End!");
+if (categories.length === 0) { 
+      isPlayButtonClickable = true; 
+      $("#play").text("Restart the Game!"); 
+      $("#active-clue").html("The End!"); 
     }
+  }
+
+  
   }
 }
