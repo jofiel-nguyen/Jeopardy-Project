@@ -84,7 +84,7 @@ let activeClueMode = 0; // Controls the flow of #active-clue element while selec
 let isPlayButtonClickable = true; // Only clickable when the game haven't started yet or ended. Prevents the button to be clicked during the game.
 
 $("#play").on("click", handleClickOfPlay);
-
+$("#active-clue").on("click", handleClickOfActiveClue);//adding more
 /**
  * Manages the behavior of the play button (start or restart) when clicked.
  * Sets up the game.
@@ -95,6 +95,9 @@ $("#play").on("click", handleClickOfPlay);
 function handleClickOfPlay ()
 {
   // todo set the game up if the play button is clickable
+   if (isPlayButtonClickable) {
+                setupTheGame();
+            }
 }
 
 /**
@@ -109,15 +112,57 @@ function handleClickOfPlay ()
  * - The game play is managed via events.
  */
 async function setupTheGame ()
-{
+{ isPlayButtonClickable = false;
+  $("#play").text("Loading...");
+  $("#play").prop("disabled", true);
   // todo show the spinner while setting up the game
-
+  $("#spinner").removeClass("hidden");
+  $("#game-board").addClass("hidden");
+  $("#active-clue").html("Loading game data...");
   // todo reset the DOM (table, button text, the end text)
-
+  $("#categories").empty();
+  $("#clues").empty();
+  activeClue = null;
+  activeClueMode = 0;
   // todo fetch the game data (categories with clues)
+  try{
+    const categoryIds = await getCategoryIds();
+                categories = []; // Clear previous categories
+                for (let i = 0; i < categoryIds.length; i++) {
+                    const categoryData = await getCategoryData(categoryIds[i]);
+                 
+                    if (categoryData.clues.length === NUMBER_OF_CLUES_PER_CATEGORY) {
+                        categories.push(categoryData);
+                    }
+                }
 
+                // If we didn't get enough categories, try again (simple retry logic)
+                if (categories.length < NUMBER_OF_CATEGORIES) {
+                    console.warn("Not enough categories with sufficient clues found. Retrying...");
+                    // A more robust solution might involve fetching more categories or a loop.
+                    // For this exercise, we'll just proceed with what we have or indicate failure.
+                    // For now, let's just ensure we have at least one category to display something.
+                    if (categories.length === 0) {
+                        $("#active-clue").html("Failed to load game data. Please try again.");
+                        return;
+                    }
+                }
+    
   // todo fill the table
-}
+  fillTable(categories);
+}catch (error) {
+                console.error("Error setting up the game:", error);
+                $("#active-clue").html("Error loading game. Please check your connection and try again.");
+            } finally {
+                // Hide the spinner and show the game board
+                $("#spinner").addClass("hidden");
+                $("#game-board").removeClass("hidden");
+                $("#active-clue").html("Click a clue to reveal the question!");
+                $("#play").text("Restart Game!");
+                $("#play").prop("disabled", false); // Enable button
+                isPlayButtonClickable = true;
+            }
+        }
 
 /**
  * Gets as many category IDs as in the `NUMBER_OF_CATEGORIES` constant.
@@ -129,10 +174,16 @@ async function setupTheGame ()
  */
 async function getCategoryIds ()
 {
-  const ids = []; // todo set after fetching
+  const ids = suitableCategories.slice(0, NUMBER_OF_CATEGORIES).map(cat => cat.id); // todo set after fetching
+  const suitableCategories = allCategories.filter(cat => cat.clues_count >= NUMBER_OF_CLUES_PER_CATEGORY);
+  for (let i = suitableCategories.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [suitableCategories[i], suitableCategories[j]] = [suitableCategories[j], suitableCategories[i]];
+            }
 
   // todo fetch NUMBER_OF_CATEGORIES amount of categories
-
+  const response = await axios.get(`${API_URL}categories?count=100`);
+  const allCategories = response.data;
   return ids;
 }
 
@@ -159,14 +210,32 @@ async function getCategoryIds ()
  * - In the API, not all clues have a value. You can assign your own value or skip that clue.
  */
 async function getCategoryData (categoryId)
-{
+{ const response = await axios.get(`${API_URL}category?id=${categoryId}`);
+  const apiCategory = response.data;
   const categoryWithClues = {
-    id: categoryId,
-    title: undefined, // todo set after fetching
+    id: apiCategory.id,
+    title: apiCategory.title, // todo set after fetching
     clues: [] // todo set after fetching
   };
 
   // todo fetch the category with NUMBER_OF_CLUES_PER_CATEGORY amount of clues
+const filteredClues = apiCategory.clues.filter(clue =>
+                clue.question && clue.answer && clue.value !== null && clue.value !== undefined
+            );
+ for (let i = filteredClues.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [filteredClues[i], filteredClues[j]] = [filteredClues[j], filteredClues[i]];
+            }
+
+            // Take NUMBER_OF_CLUES_PER_CATEGORY amount of clues
+            categoryWithClues.clues = filteredClues.slice(0, NUMBER_OF_CLUES_PER_CATEGORY).map((clue, index) => ({
+                id: clue.id,
+                value: clue.value || (index + 1) * 100, // Assign a default value if missing
+                question: clue.question,
+                answer: clue.answer
+            }));
+
+
 
   return categoryWithClues;
 }
@@ -186,6 +255,38 @@ async function getCategoryData (categoryId)
 function fillTable (categories)
 {
   // todo
+              const $categoriesRow = $("#categories");
+            const $cluesBody = $("#clues");
+
+            $categoriesRow.empty();
+            $cluesBody.empty();
+
+            
+            for (let category of categoriesToDisplay) {
+                $categoriesRow.append(`<th class="rounded-t-xl">${category.title.toUpperCase()}</th>`);
+            }
+
+            for (let i = 0; i < NUMBER_OF_CLUES_PER_CATEGORY; i++) {
+                const $row = $("<tr>");
+                for (let j = 0; j < categoriesToDisplay.length; j++) {
+                    const category = categoriesToDisplay[j];
+                    // Check if the clue exists for this row/category
+                    const clue = category.clues[i];
+                    if (clue) {
+                        // Use a data attribute to store category and clue IDs
+                        $row.append(`
+                            <td class="clue rounded-xl" data-category-id="${category.id}" data-clue-id="${clue.id}">
+                                $${clue.value}
+                            </td>
+                        `);
+                    } else {
+                        // If a clue is missing for some reason, add an empty cell
+                        $row.append(`<td class="viewed rounded-xl"></td>`);
+                    }
+                }
+                $cluesBody.append($row);
+            }
+
 }
 
 $(".clue").on("click", handleClickOfClue);
@@ -202,10 +303,43 @@ $(".clue").on("click", handleClickOfClue);
  *
  */
 function handleClickOfClue (event)
-{
+{ if (activeClueMode === 0) {
+                const $clickedClueCell = $(event.target);
+                const categoryId = $clickedClueCell.data("category-id");
+                const clueId = $clickedClueCell.data("clue-id");
   // todo find and remove the clue from the categories
-
+let foundClue = null;
+                for (let i = 0; i < categories.length; i++) {
+                    if (categories[i].id === categoryId) {
+                        for (let j = 0; j < categories[i].clues.length; j++) {
+                            if (categories[i].clues[j].id === clueId) {
+                                foundClue = categories[i].clues[j];
+                                // Remove the clue from the array
+                                categories[i].clues.splice(j, 1);
+                                break;
+                            }
+                        }
+                        if (foundClue) {
+                            // If the category now has no clues, remove the category itself
+                            if (categories[i].clues.length === 0) {
+                                categories.splice(i, 1);
+                            }
+                            break;
+                        }
+                    }
   // todo mark clue as viewed (you can use the class in style.css), display the question at #active-clue
+                   if (foundClue) {
+                    activeClue = foundClue;
+                    
+                    $clickedClueCell.addClass("viewed");
+                    $clickedClueCell.off("click");
+                    $clickedClueCell.html(" "); 
+
+                    // Display the question at #active-clue
+                    $("#active-clue").html(activeClue.question);
+                    activeClueMode = 1; 
+                }
+            }
 }
 
 $("#active-clue").on("click", handleClickOfActiveClue);
@@ -223,10 +357,25 @@ $("#active-clue").on("click", handleClickOfActiveClue);
 function handleClickOfActiveClue (event)
 {
   // todo display answer if displaying a question
-
+if (activeClueMode === 1) {
+                activeClueMode = 2;
+                $("#active-clue").html(activeClue.answer);
+            }
   // todo clear if displaying an answer
+  else if (activeClueMode === 2) {
+                activeClueMode = 0;
+                $("#active-clue").html("Click a clue to reveal the question!");
+                activeClue = null;
   // todo after clear end the game when no clues are left
+const allCluesViewed = $(".clue:not(.viewed)").length === 0;
 
+                if (allCluesViewed || categories.length === 0) {
+                    isPlayButtonClickable = true;
+                    $("#play").text("Play Again!");
+                    $("#play").prop("disabled", false);
+                    $("#active-clue").html("Game Over! Click 'Play Again!' to restart.");
+                }
+            }
   if (activeClueMode === 1)
   {
     activeClueMode = 2;
