@@ -5,19 +5,208 @@
 
 /*
   Some colors you may find useful:
-  #115ff4
-  #060ce9
-  #28a200
-  #8d2ab5
-  #74119c
+  #115ff4 (Blue)
+  #060ce9 (Darker Blue)
+  #28a200 (Green)
+  #8d2ab5 (Purple)
+  #74119c (Darker Purple)
+  #FFA500 (Orange - good for active clue)
+  #FFD700 (Gold - for scores, etc.)
 */
 
-.disabled
-{
-  display: none;
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #060ce9; /* Darker blue background for the whole page */
+  color: #fff; /* White text by default */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.viewed
-{
-  text-decoration: line-through;
+#game-container {
+    background-color: #115ff4; /* Lighter blue container for the game board */
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    max-width: 1000px;
+    width: 100%;
+}
+
+#game-board {
+  width: 100%;
+  border-collapse: separate; /* Allows border-radius on cells */
+  border-spacing: 10px; /* Space between cells */
+  table-layout: fixed; /* Ensures equal column widths */
+}
+
+#game-board th,
+#game-board td {
+  background-color: #115ff4; /* Default blue for cells */
+  border: 3px solid #060ce9; /* Darker blue border */
+  border-radius: 10px;
+  padding: 15px 5px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#game-board th {
+  background-color: #74119c; /* Darker purple for category headers */
+  color: #FFD700; /* Gold text for categories */
+  font-size: 1.5em;
+  height: 80px;
+  vertical-align: middle;
+  cursor: default; /* No pointer cursor for headers */
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+#game-board td.clue {
+  background-color: #28a200; /* Green for clickable clue values */
+  font-size: 2.2em;
+  height: 100px; /* Make clue cells taller */
+  display: flex; /* Use flexbox for centering content */
+  align-items: center;
+  justify-content: center;
+  user-select: none; /* Prevent text selection */
+  color: #FFD700; /* Gold text for values */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Text shadow for values */
+}
+
+#game-board td.clue:hover {
+  background-color: #3cb411; /* Slightly lighter green on hover */
+  transform: scale(1.02); /* Slight scale effect on hover */
+}
+
+.viewed {
+  background-color: #8d2ab5; /* Purple for viewed clues */
+  color: #fff;
+  text-decoration: line-through; /* Keep the strikethrough */
+  cursor: default; /* No pointer cursor for viewed clues */
+  opacity: 0.7;
+  pointer-events: none; /* Disable clicks on viewed cells */
+}
+
+/* Active Clue Display */
+#active-clue {
+  background-color: #FFA500; /* Orange for the active clue display */
+  color: #060ce9; /* Dark blue text */
+  font-size: 2.5em;
+  min-height: 200px; /* Make it taller */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+  margin-top: 20px;
+  border-radius: 15px;
+  border: 5px solid #FFD700; /* Gold border */
+  box-shadow: 0 0 25px rgba(255, 165, 0, 0.7); /* Orange glow */
+  cursor: pointer;
+  user-select: none;
+  font-weight: bold;
+  word-wrap: break-word; /* Ensure long text wraps */
+  flex-grow: 1; /* Allow it to grow */
+}
+
+#active-clue:hover {
+  background-color: #FFB31A; /* Slightly lighter orange on hover */
+}
+
+/* Play Button */
+#play {
+  background-color: #74119c; /* Darker purple for the play button */
+  color: #FFD700; /* Gold text */
+  font-size: 1.5em;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 25px;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+#play:hover:not(:disabled) {
+  background-color: #8d2ab5; /* Lighter purple on hover */
+  transform: scale(1.05);
+}
+
+#play:disabled {
+  background-color: #333;
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Spinner */
+#spinner {
+  border: 8px solid rgba(255, 255, 255, 0.3);
+  border-top: 8px solid #FFD700; /* Gold spinner color */
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin: 30px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  #game-board th,
+  #game-board td {
+    font-size: 0.8em;
+    padding: 8px 3px;
+  }
+  #game-board td.clue {
+    font-size: 1.5em;
+    height: 70px;
+  }
+  #active-clue {
+    font-size: 1.5em;
+    min-height: 150px;
+    padding: 20px;
+  }
+  #play {
+    font-size: 1.2em;
+    padding: 10px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  #game-board th,
+  #game-board td {
+    font-size: 0.7em;
+    padding: 5px 2px;
+  }
+  #game-board td.clue {
+    font-size: 1.2em;
+    height: 60px;
+  }
+  #active-clue {
+    font-size: 1.2em;
+    min-height: 100px;
+    padding: 15px;
+  }
+  #play {
+    font-size: 1em;
+    padding: 8px 15px;
+  }
 }
